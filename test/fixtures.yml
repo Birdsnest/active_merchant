@@ -94,6 +94,10 @@ epay:
   login: X
   password: Y
 
+evo_ca:
+  username: demo
+  password: password
+
 # Working credentials, no need to replace
 eway:
   login: '87654321'
@@ -307,6 +311,10 @@ pay_junction:
 payment_express:
   login: LOGIN
   password: PASSWORD
+
+paymill:
+  private_key: PRIVATE_KEY
+  public_key: PUBLIC_KEY
 
 # You can use either your API PEM file or API signature with PayPal.
 paypal_certificate:

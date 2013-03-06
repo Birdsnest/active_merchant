@@ -94,6 +94,7 @@ The [ActiveMerchant Wiki](http://github.com/Shopify/active_merchant/wikis) conta
 * [Efsnet](http://www.concordefsnet.com/) - US
 * [Elavon MyVirtualMerchant](http://www.elavon.com) - US, CA
 * [ePay](http://www.epay.dk/) - DK, SE, NO
+* [EVO Canada](http://www.evocanada.com/) - CA
 * [eWAY](http://www.eway.com.au/) - AU
 * [eWay Rapid 3.0](http://www.eway.com.au/) - AU
 * [E-xact](http://www.e-xact.com) - CA, US
@@ -132,6 +133,7 @@ The [ActiveMerchant Wiki](http://github.com/Shopify/active_merchant/wikis) conta
 * [PayGate PayXML](http://paygate.co.za/) - US, ZA
 * [PayJunction](http://www.payjunction.com/) - US
 * [PaymentExpress](http://www.paymentexpress.com/) - AU, MY, NZ, SG, ZA, UK, US
+* [Paymill](https://www.paymill.com) - AT, BE, CH, CZ, DE, DK, EE, ES, FI, FR, GB, HU, IE, IS, IT, LI, LU, LV, NL, NO, PL, PT, SE, SI, TR
 * [PayPal Express Checkout](https://www.paypal.com/cgi-bin/webscr?cmd=xpt/merchant/ExpressCheckoutIntro-outside) - US, CA, SG, AU
 * [PayPal Payflow Pro](https://www.paypal.com/cgi-bin/webscr?cmd=_payflow-pro-overview-outside) - US, CA, SG, AU
 * [PayPal Website Payments Pro (UK)](https://www.paypal.com/uk/cgi-bin/webscr?cmd=_wp-pro-overview-outside) - UK
