@@ -42,7 +42,7 @@ module ActiveMerchant #:nodoc:
         end
       end
       
-      def redirect_url_for token
+      def redirect_url_for token, options = {}
         REDIRECT_URL
       end
 
