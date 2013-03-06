@@ -41,6 +41,15 @@ module ActiveMerchant #:nodoc:
           PaypalExpressResponse.new true, SUCCESS_MESSAGE, {:amount => money}, :test => true, :authorization => AUTHORIZATION
         end
       end
+
+      def details_for token
+        case normalize(token)
+        when 'valid'
+          PaypalExpressResponse.new true, SUCCESS_MESSAGE, {}, :test => true, :authorization => AUTHORIZATION
+        else
+          PaypalExpressResponse.new false, FAILURE_MESSAGE, {}, :test => true
+        end
+      end
       
       def redirect_url_for token, options = {}
         REDIRECT_URL
