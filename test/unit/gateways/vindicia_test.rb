@@ -1,20 +1,12 @@
 require 'test_helper'
-require 'vindicia-api'
 
 class VindiciaTest < Test::Unit::TestCase
   def setup
-    unless Vindicia.config.is_configured?
-      schema = File.read(File.dirname(__FILE__) + '/../../schema/vindicia/Vindicia.xsd')
-      response = Net::HTTPResponse.new('1.1', '200', 'OK')
-      response.expects(:body).once.returns(schema)
-      Vindicia.expects(:get_vindicia_file).once.returns(response)
-    end
-
     @gateway = VindiciaGateway.new(
-                 :login => 'login',
-                 :password => 'password',
-                 :account_id => 1
-               )
+      :login => 'login',
+      :password => 'password',
+      :account_id => 1
+    )
 
     @credit_card = credit_card
     @amount = 100
@@ -87,7 +79,9 @@ class VindiciaTest < Test::Unit::TestCase
                                                  successful_capture_response,
                                                  successful_update_response)
 
-    assert response = @gateway.recurring(@amount, @credit_card, @options.merge(:product_sku => "TEST_SKU"))
+    response = assert_deprecation_warning(Gateway::RECURRING_DEPRECATION_MESSAGE) do
+      @gateway.recurring(@amount, @credit_card, @options.merge(:product_sku => "TEST_SKU"))
+    end
     assert_instance_of Response, response
     assert_success response
 
@@ -101,7 +95,9 @@ class VindiciaTest < Test::Unit::TestCase
                                                  unsuccessful_update_response,
                                                  successful_void_response)
 
-    assert response = @gateway.recurring(@amount, @credit_card, @options.merge(:product_sku => "TEST_SKU"))
+    response = assert_deprecation_warning(Gateway::RECURRING_DEPRECATION_MESSAGE) do
+      @gateway.recurring(@amount, @credit_card, @options.merge(:product_sku => "TEST_SKU"))
+    end
     assert_failure response
     assert response.test?
   end

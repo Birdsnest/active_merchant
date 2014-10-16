@@ -11,11 +11,24 @@ class RemoteFirstdataE4Test < Test::Unit::TestCase
       :billing_address => address,
       :description => 'Store Purchase'
     }
+    @options_with_authentication_data = @options.merge({
+      eci: "5",
+      cavv: "TESTCAVV",
+      xid: "TESTXID"
+    })
   end
 
   def test_successful_purchase
     assert response = @gateway.purchase(@amount, @credit_card, @options)
     assert_match(/Transaction Normal/, response.message)
+    assert_success response
+  end
+
+  def test_successful_purchase_with_card_authentication
+    assert response = @gateway.purchase(@amount, @credit_card, @options_with_authentication_data)
+    assert_equal response.params["cavv"], @options_with_authentication_data[:cavv]
+    assert_equal response.params["ecommerce_flag"], @options_with_authentication_data[:eci]
+    assert_equal response.params["xid"], @options_with_authentication_data[:xid]
     assert_success response
   end
 
@@ -71,11 +84,33 @@ class RemoteFirstdataE4Test < Test::Unit::TestCase
     assert_match(/Invalid Authorization Number/i, response.message)
   end
 
+  def test_successful_verify
+    assert response = @gateway.verify(@credit_card, @options)
+    assert_success response
+
+    assert_equal "Transaction Normal - Approved", response.message
+    assert_equal "0.0", response.params["dollar_amount"]
+    assert_equal "05", response.params["transaction_type"]
+  end
+
+  def test_failed_verify
+    assert response = @gateway.verify(@bad_credit_card, @options)
+    assert_failure response
+    assert_match %r{Invalid Credit Card Number}, response.message
+  end
+
   def test_invalid_login
     gateway = FirstdataE4Gateway.new(:login    => "NotARealUser",
                                      :password => "NotARealPassword" )
     assert response = gateway.purchase(@amount, @credit_card, @options)
-    assert_match /Unauthorized Request/, response.message
+    assert_match %r{Unauthorized Request}, response.message
     assert_failure response
+  end
+
+  def test_response_contains_cvv_and_avs_results
+    response = @gateway.purchase(@amount, @credit_card, @options)
+    assert_success response
+    assert_equal 'M', response.cvv_result["code"]
+    assert_equal '1', response.avs_result["code"]
   end
 end

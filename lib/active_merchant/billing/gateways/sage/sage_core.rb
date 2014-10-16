@@ -36,7 +36,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_reference(post, reference)
-        ref, source = reference.to_s.split(";")
+        ref, _ = reference.to_s.split(";")
         post[:T_reference] = ref
       end
 
@@ -45,7 +45,7 @@ module ActiveMerchant #:nodoc:
       end
 
       def add_customer_data(post, options)
-        post[:T_customer_number] = options[:customer]
+        post[:T_customer_number] = options[:customer] if Float(options[:customer]) rescue nil
       end
 
       def add_addresses(post, options)

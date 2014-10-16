@@ -20,8 +20,8 @@ class RealexTest < Test::Unit::TestCase
     )
 
     @gateway_with_account = RealexGateway.new(
-      :login => @merchant_id,
-      :password => @secret,
+      :login => @login,
+      :password => @password,
       :account => 'bill_web_cengal'
     )
 
@@ -90,13 +90,13 @@ class RealexTest < Test::Unit::TestCase
 
   def test_deprecated_credit
     @gateway.expects(:ssl_post).returns(successful_refund_response)
-    assert_deprecation_warning(Gateway::CREDIT_DEPRECATION_MESSAGE, @gateway) do
+    assert_deprecation_warning(Gateway::CREDIT_DEPRECATION_MESSAGE) do
       assert_success @gateway.credit(@amount, '1234;1234;1234')
     end
   end
 
   def test_supported_countries
-    assert_equal ['IE', 'GB'], RealexGateway.supported_countries
+    assert_equal ['IE', 'GB', "FR", "BE", "NL", "LU", "IT"], RealexGateway.supported_countries
   end
 
   def test_supported_card_types
@@ -287,7 +287,7 @@ SRC
   end
 
   def test_zip_in_shipping_address
-    @gateway.expects(:ssl_post).with(anything, regexp_matches(/<code>BT28XX<\/code>/)).returns(successful_purchase_response)
+    @gateway.expects(:ssl_post).with(anything, regexp_matches(/<code>28\|123<\/code>/)).returns(successful_purchase_response)
 
     options = {
       :order_id => '1',
@@ -298,7 +298,7 @@ SRC
   end
 
   def test_zip_in_billing_address
-    @gateway.expects(:ssl_post).with(anything, regexp_matches(/<code>BT28XX<\/code>/)).returns(successful_purchase_response)
+    @gateway.expects(:ssl_post).with(anything, regexp_matches(/<code>28\|123<\/code>/)).returns(successful_purchase_response)
 
     options = {
       :order_id => '1',

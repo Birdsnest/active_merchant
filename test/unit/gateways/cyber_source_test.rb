@@ -1,6 +1,8 @@
 require 'test_helper'
 
 class CyberSourceTest < Test::Unit::TestCase
+  include CommStub
+
   def setup
     Base.gateway_mode = :test
 
@@ -81,11 +83,21 @@ class CyberSourceTest < Test::Unit::TestCase
     assert response.test?
   end
 
+  def test_successful_pinless_debit_card_purchase
+    @gateway.expects(:ssl_post).returns(successful_purchase_response)
+
+    assert response = @gateway.purchase(@amount, @credit_card, @options.merge(:pinless_debit_card => true))
+    assert_equal 'Successful transaction', response.message
+    assert_success response
+    assert_equal "#{@options[:order_id]};#{response.params['requestID']};#{response.params['requestToken']}", response.authorization
+    assert response.test?
+  end
+
   def test_successful_reference_purchase
     @gateway.stubs(:ssl_post).returns(successful_create_subscription_response, successful_purchase_response)
 
     assert_success(response = @gateway.store(@credit_card, @subscription_options))
-    assert_success(response_reference_purchase = @gateway.purchase(@amount, response.authorization, @options))
+    assert_success(@gateway.purchase(@amount, response.authorization, @options))
     assert response.test?
   end
 
@@ -208,7 +220,7 @@ class CyberSourceTest < Test::Unit::TestCase
     @gateway.stubs(:ssl_post).returns(successful_capture_response, successful_refund_response)
     assert_success(response = @gateway.purchase(@amount, @credit_card, @options))
 
-    assert_success(response_refund = @gateway.refund(@amount, response.authorization))
+    assert_success(@gateway.refund(@amount, response.authorization))
   end
 
   def test_successful_credit_request
@@ -225,6 +237,22 @@ class CyberSourceTest < Test::Unit::TestCase
     assert response = @gateway.authorize(@amount, @credit_card, @options)
     assert response.success?
     assert_success(@gateway.auth_reversal(@amount, response.authorization, @options))
+  end
+
+  def test_validate_pinless_debit_card_request
+    @gateway.stubs(:ssl_post).returns(successful_validate_pinless_debit_card)
+    assert response = @gateway.validate_pinless_debit_card(@credit_card, @options)
+    assert response.success?
+    assert_success(@gateway.auth_reversal(@amount, response.authorization, @options))
+  end
+
+  def test_validate_add_subscription_amount
+    stub_comms do
+      @gateway.store(@credit_card, @subscription_options)
+    end.check_request do |endpoint, data, headers|
+      assert_match %r(<grandTotalAmount>1.00<\/grandTotalAmount>), data
+      assert_match %r(<amount>1.00<\/amount>), data
+    end.respond_with(successful_update_subscription_response)
   end
 
   private
@@ -315,4 +343,11 @@ class CyberSourceTest < Test::Unit::TestCase
     XML
   end
 
+  def successful_validate_pinless_debit_card
+    <<-XML
+<?xml version="1.0" encoding="utf-8"?><soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Header>
+<wsse:Security xmlns:wsse="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-secext-1.0.xsd"><wsu:Timestamp xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd" wsu:Id="Timestamp-190204278"><wsu:Created>2013-05-13T13:52:57.159Z</wsu:Created></wsu:Timestamp></wsse:Security></soap:Header><soap:Body><c:replyMessage xmlns:c="urn:schemas-cybersource-com:transaction-data-1.69"><c:merchantReferenceCode>6427013</c:merchantReferenceCode><c:requestID>3684531771310176056442</c:requestID><c:decision>ACCEPT</c:decision><c:reasonCode>100</c:reasonCode><c:requestToken>AhijbwSRj3pM2QqPs2j0Ip+xoJXIsAMPYZNJMq6PSbs5ATAA6z42</c:requestToken><c:pinlessDebitValidateReply><c:reasonCode>100</c:reasonCode><c:requestDateTime>2013-05-13T13:52:57Z</c:requestDateTime><c:status>Y</c:status></c:pinlessDebitValidateReply></c:replyMessage></soap:Body></soap:Envelope>
+    XML
+  end
 end

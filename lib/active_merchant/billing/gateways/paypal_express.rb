@@ -59,8 +59,26 @@ module ActiveMerchant #:nodoc:
         commit 'DoExpressCheckoutPayment', build_sale_or_authorization_request('Sale', money, options)
       end
 
-      def reference_transaction(money, options = {})
+      def store(token, options = {})
+        commit 'CreateBillingAgreement', build_create_billing_agreement_request(token, options)
+      end
+
+      def unstore(token, options = {})
+        commit 'BAUpdate', build_cancel_billing_agreement_request(token)
+      end
+
+      def agreement_details(reference_id, options = {})
+        commit 'BAUpdate', build_details_billing_agreement_request(reference_id)
+      end
+
+      def authorize_reference_transaction(money, options = {})
         requires!(options, :reference_id, :payment_type, :invoice_id, :description, :ip)
+
+        commit 'DoReferenceTransaction', build_reference_transaction_request('Authorization', money, options)
+      end
+
+      def reference_transaction(money, options = {})
+        requires!(options, :reference_id)
 
         commit 'DoReferenceTransaction', build_reference_transaction_request('Sale', money, options)
       end
@@ -113,12 +131,14 @@ module ActiveMerchant #:nodoc:
               if options[:max_amount]
                 xml.tag! 'n2:MaxAmount', localized_amount(options[:max_amount], currency_code), 'currencyID' => currency_code
               end
+              xml.tag! 'n2:ReqBillingAddress', options[:req_billing_address] ? '1' : '0'
               xml.tag! 'n2:NoShipping', options[:no_shipping] ? '1' : '0'
               xml.tag! 'n2:AddressOverride', options[:address_override] ? '1' : '0'
               xml.tag! 'n2:LocaleCode', locale_code(options[:locale]) unless options[:locale].blank?
               xml.tag! 'n2:BrandName', options[:brand_name] unless options[:brand_name].blank?
               # Customization of the payment page
               xml.tag! 'n2:PageStyle', options[:page_style] unless options[:page_style].blank?
+              xml.tag! 'n2:cpp-logo-image', options[:logo_image] unless options[:logo_image].blank?
               xml.tag! 'n2:cpp-header-image', options[:header_image] unless options[:header_image].blank?
               xml.tag! 'n2:cpp-header-border-color', options[:header_border_color] unless options[:header_border_color].blank?
               xml.tag! 'n2:cpp-header-back-color', options[:header_background_color] unless options[:header_background_color].blank?
@@ -140,9 +160,16 @@ module ActiveMerchant #:nodoc:
               if !options[:allow_note].nil?
                 xml.tag! 'n2:AllowNote', options[:allow_note] ? '1' : '0'
               end
+
+              if options[:funding_sources]
+                xml.tag! 'n2:FundingSourceDetails' do
+                  xml.tag! 'n2:UserSelectedFundingSource', options[:funding_sources][:source]
+                end
+              end
+
               xml.tag! 'n2:CallbackURL', options[:callback_url] unless options[:callback_url].blank?
 
-              add_payment_details(xml, with_money_default(money), currency_code, options)
+              add_payment_details(xml, money, currency_code, options)
               if options[:shipping_options]
                 options[:shipping_options].each do |shipping_option|
                   xml.tag! 'n2:FlatRateShippingOptions' do
@@ -166,6 +193,43 @@ module ActiveMerchant #:nodoc:
         xml.target!
       end
 
+      def build_create_billing_agreement_request(token, options = {})
+        xml = Builder::XmlMarkup.new :indent => 2
+        xml.tag! 'CreateBillingAgreementReq', 'xmlns' => PAYPAL_NAMESPACE do
+          xml.tag! 'CreateBillingAgreementRequest', 'xmlns:n2' => EBAY_NAMESPACE do
+            xml.tag! 'n2:Version', API_VERSION
+            xml.tag! 'Token', token
+          end
+        end
+
+        xml.target!
+      end
+
+      def build_cancel_billing_agreement_request(token)
+        xml = Builder::XmlMarkup.new :indent => 2
+        xml.tag! 'BillAgreementUpdateReq', 'xmlns' => PAYPAL_NAMESPACE do
+          xml.tag! 'BAUpdateRequest', 'xmlns:n2' => EBAY_NAMESPACE do
+            xml.tag! 'n2:Version', API_VERSION
+            xml.tag! 'ReferenceID', token
+            xml.tag! 'BillingAgreementStatus', "Canceled"
+          end
+        end
+
+        xml.target!
+      end
+
+      def build_details_billing_agreement_request(reference_id)
+        xml = Builder::XmlMarkup.new :indent => 2
+        xml.tag! 'BillAgreementUpdateReq', 'xmlns' => PAYPAL_NAMESPACE do
+          xml.tag! 'BAUpdateRequest', 'xmlns:n2' => EBAY_NAMESPACE do
+            xml.tag! 'n2:Version', API_VERSION
+            xml.tag! 'ReferenceID', reference_id
+          end
+        end
+
+        xml.target!
+      end
+
       def build_reference_transaction_request(action, money, options)
         currency_code = options[:currency] || currency(money)
 
@@ -179,7 +243,7 @@ module ActiveMerchant #:nodoc:
               xml.tag! 'n2:ReferenceID', options[:reference_id]
               xml.tag! 'n2:PaymentAction', action
               xml.tag! 'n2:PaymentType', options[:payment_type] || 'Any'
-              add_payment_details(xml, with_money_default(money), currency_code, options)
+              add_payment_details(xml, money, currency_code, options)
               xml.tag! 'n2:IPAddress', options[:ip]
             end
           end
@@ -190,10 +254,6 @@ module ActiveMerchant #:nodoc:
 
       def build_response(success, message, response, options = {})
         PaypalExpressResponse.new(success, message, response, options)
-      end
-
-      def with_money_default(money)
-        amount(money).to_f.zero? ? 100 : money
       end
 
       def locale_code(country_code)
