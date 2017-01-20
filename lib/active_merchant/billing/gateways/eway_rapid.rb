@@ -53,7 +53,12 @@ module ActiveMerchant #:nodoc:
         add_invoice(params, amount, options)
         add_customer_data(params, options)
         add_credit_card(params, payment_method, options)
-        params['Method'] = payment_method.respond_to?(:number) ? 'ProcessPayment' : 'TokenPayment'
+        if payment_method.respond_to?(:number) ||
+            (payment_method.is_a?(PaymentToken) && payment_method.type == 'eway_secure_fields')
+          params['Method'] = 'ProcessPayment'
+        else
+          params['Method'] = 'TokenPayment'
+        end
         commit(url_for('Transaction'), params)
       end
 
@@ -186,6 +191,12 @@ module ActiveMerchant #:nodoc:
 
       private
 
+      class SecureFieldsToken < PaymentToken
+        def type
+          'eway_secure_fields'
+        end
+      end
+
       def add_metadata(params, options)
         params['RedirectUrl'] = options[:redirect_url] || 'http://example.com'
         params['CustomerIP'] = options[:ip] if options[:ip]
@@ -246,6 +257,8 @@ module ActiveMerchant #:nodoc:
           card_details['ExpiryMonth'] = "%02d" % (credit_card.month || 0)
           card_details['ExpiryYear'] = "%02d" % (credit_card.year || 0)
           card_details['CVN'] = credit_card.verification_value
+        elsif (credit_card.is_a?(PaymentToken) && credit_card.type == 'eway_secure_fields')
+          params['SecuredCardData'] = credit_card.payment_data
         else
           add_customer_token(params, credit_card)
         end

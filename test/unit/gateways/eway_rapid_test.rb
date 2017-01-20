@@ -12,6 +12,8 @@ class EwayRapidTest < Test::Unit::TestCase
 
     @credit_card = credit_card
     @amount = 100
+
+    @secure_fields_token = ActiveMerchant::Billing::EwayRapidGateway::SecureFieldsToken.new(secure_fields_string)
   end
 
   def test_successful_purchase
@@ -335,6 +337,21 @@ class EwayRapidTest < Test::Unit::TestCase
     end.check_request do |endpoint, data, headers|
       assert_match '"Method":"TokenPayment"', data
       assert_match '"TransactionType":"MOTO"', data
+    end.respond_with(successful_store_purchase_response)
+
+    assert_success response
+    assert_equal "Transaction Approved Successful", response.message
+    assert_equal 10440234, response.authorization
+    assert response.test?
+  end
+
+  def test_successful_secure_fields_purchase
+    response = stub_comms do
+      @gateway.purchase(100, @secure_fields_token)
+    end.check_request do |endpoint, data, headers|
+      assert_match '"Method":"ProcessPayment"', data
+      assert_match '"TransactionType":"Purchase"', data
+      assert_match %{"SecuredCardData":"#{secure_fields_string}"}, data
     end.respond_with(successful_store_purchase_response)
 
     assert_success response
@@ -1032,5 +1049,9 @@ class EwayRapidTest < Test::Unit::TestCase
       {\"CardDetails\":{\"Number\":\"[FILTERED]\",\"Name\":\"Longbob Longsen\",\"ExpiryMonth\":\"09\",\"ExpiryYear\":\"15\"
       "Verification":{"CVN":[FILTERED],"Address":0,"Email":0,"Mobile":0,"Phone":0},"Customer":{"CardDetails":{"Number":"[FILTERED]","Name":"Longbob Longsen","ExpiryMonth":"09"
     SCRUBBED_TRANSCRIPT
+  end
+
+  def secure_fields_string
+    '44DD7jYYyRgaQnVibOAsYbbFIYmSXbS6hmTxosAhG6CK1biw'
   end
 end
