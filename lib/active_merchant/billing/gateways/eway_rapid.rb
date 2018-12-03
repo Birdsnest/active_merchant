@@ -54,7 +54,7 @@ module ActiveMerchant #:nodoc:
         add_customer_data(params, options)
         add_credit_card(params, payment_method, options)
         if payment_method.respond_to?(:number) ||
-            (payment_method.is_a?(PaymentToken) && payment_method.type == 'eway_secure_fields')
+           (payment_method.is_a?(PaymentToken) && payment_method.type == 'eway_secure_fields')
           params['Method'] = 'ProcessPayment'
         else
           params['Method'] = 'TokenPayment'
@@ -257,7 +257,8 @@ module ActiveMerchant #:nodoc:
           card_details['ExpiryMonth'] = '%02d' % (credit_card.month || 0)
           card_details['ExpiryYear'] = '%02d' % (credit_card.year || 0)
           card_details['CVN'] = credit_card.verification_value
-        elsif (credit_card.is_a?(PaymentToken) && credit_card.type == 'eway_secure_fields')
+        elsif credit_card.is_a?(PaymentToken) &&
+              credit_card.type == 'eway_secure_fields'
           params['SecuredCardData'] = credit_card.payment_data
         else
           add_customer_token(params, credit_card)

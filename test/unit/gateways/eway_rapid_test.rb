@@ -355,7 +355,7 @@ class EwayRapidTest < Test::Unit::TestCase
     end.respond_with(successful_store_purchase_response)
 
     assert_success response
-    assert_equal "Transaction Approved Successful", response.message
+    assert_equal 'Transaction Approved Successful', response.message
     assert_equal 10440234, response.authorization
     assert response.test?
   end
